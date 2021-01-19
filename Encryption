@@ -1,0 +1,134 @@
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Scanner;
+import java.nio.file.Files;
+
+
+public class Encrypt {
+    public static void main(String[] args) throws IOException {
+        // Menu, will check input for non int
+        int choice = menu();
+
+
+        if (choice == 1) {
+            String file_separator;
+            Scanner KB = new Scanner(System.in);
+            String message;
+            System.out.println("----- ENCRYPTION -----");
+
+            // Prompt for plaintext
+            System.out.print("Please enter a message to encrypt: ");
+            message = KB.nextLine();
+
+            // Format by
+            String mangled_text = stringFormatting(message);
+            byte[] byte_array = mangled_text.getBytes(StandardCharsets.UTF_8);
+
+
+            // rather than convert to binary, we simply write a binary file.
+            // if a hacker gets into this, they will still need to crack open a hex editor to get contents
+            // Prep write
+            Scanner filename_input = new Scanner(System.in);
+            System.out.println("CipherText is ready to be written.");
+            System.out.print("Enter the file name (Do not write a file extension. FILENAME.bin will be written): ");
+            String filename = filename_input.nextLine();
+            filename += ".bin";
+            // Write file
+            try (FileOutputStream fos = new FileOutputStream(filename)) {
+                fos.write(byte_array);
+                //fos.close(); There is no more need for this line since you had created the instance of "fos" inside the try. And this will automatically close the OutputStream
+            }
+
+            if ( System.getProperty("os.name").contains("Win") ) {
+                file_separator = "\\";
+            }
+            else {
+                file_separator = "/";
+            }
+            System.out.println("CipherText path: " + System.getProperty("user.dir") + file_separator + filename );
+        }
+        else {
+            Scanner filepath_input = new Scanner(System.in);
+            String filepath;
+            System.out.println("----- DECRYPTION -----");
+
+            // Grab file path
+            System.out.print("Please enter the filepath of the ciphertext to decrypt: ");
+            filepath = filepath_input.nextLine();
+
+            // Read in file
+            try {
+                Path test_path = Paths.get(filepath);
+                URI disk_path = test_path.toUri();
+                byte[] file_to_byte_array = Files.readAllBytes(Paths.get(disk_path));
+                System.out.println("FILE READ ...");
+                String mangled_text = new String(file_to_byte_array, StandardCharsets.UTF_8);
+                //char[] char_array = new String(file_to_byte_array, "UTF-16").toCharArray();
+
+                // We have the mangled text. We need to clean it up
+                decrypt decrypt_op = new decrypt();
+                String decrypted_message = decrypt_op.decrypt_op(mangled_text);
+                System.out.println("DECRYPTED MESSAGE: " + decrypted_message);
+            } catch (IOException e) {
+                System.out.println("FILE NOT FOUND ... PLEASE RERUN PROGRAM WITH PROPER FILEPATH ...");
+            }
+
+        }
+    }
+
+    public static String stringFormatting(String message) {
+        char c;
+        int unicode_char;
+        StringBuffer sb = new StringBuffer();
+
+        // HEre is what happens
+        // We will convert char to unicode,
+        for(int i=0; i<message.length(); i++) {
+            c = message.charAt(i);
+            unicode_char = (int) c;
+            // here the magic takes place
+            if (i % 2 == 0) {
+                unicode_char += 25;
+                //c = (char) (c + 25);
+            } else {
+                unicode_char += 50;
+                //c = (char) (c + 50);
+            }
+
+            sb.append( (char) unicode_char );
+        }
+
+        //this puts  into sb
+        return sb.toString();
+    }
+
+    public static Integer menu() {
+        // prompt user
+        int choice;
+        Scanner scan = new Scanner(System.in);
+        while(true) {
+            System.out.println("1. Encrypt message");
+            System.out.println("2. Decrypt message");
+            System.out.print("Please enter your choice: ");
+            if(scan.hasNextInt()) {
+                choice = scan.nextInt();
+                if (choice != 1 && choice != 2) {
+                    System.out.println("Your choice must be either 1 or 2 ... ");
+                    scan.nextLine();
+                } else {
+                    // break out of loop
+                    break;
+                }
+            }
+            else {
+                System.out.println("Choice needs to be an integer of 1 or 2 ...");
+                scan.nextLine();
+            }
+        }
+        return choice;
+    }
+}
